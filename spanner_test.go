@@ -4,7 +4,12 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewHTTPSpanner(t *testing.T) {
@@ -12,6 +17,7 @@ func TestNewHTTPSpanner(t *testing.T) {
 	t.Run("Start", testStart)
 	t.Run("DecorationNoMoneyContext", testDecorate)
 	t.Run("DecorationMoneyContext", testDecorateWithMoney)
+	t.Run("TrackerFinish", testTrackerFinish)
 }
 
 func testNewHTTPSpannerNil(t *testing.T) {
@@ -58,4 +64,51 @@ func testDecorateWithMoney(t *testing.T) {
 	decorated.ServeHTTP(nil, inputRequest)
 }
 
-//create a test that simply finishes the tracker that was started
+func testTrackerFinish(t *testing.T) {
+	var (
+		assert  = assert.New(t)
+		spanner *HTTPSpanner
+		tracker *HTTPTracker
+		s       Span
+		r       Result
+	)
+
+	startTime, e := time.Parse(time.RFC3339, "1970-01-01T00:00:01+00:00") //1 second into epoch time = 1,000,000 microseconds
+	require.Nil(t, e)
+
+	spanner = NewHTTPSpanner()
+
+	s = Span{
+		Name:    "test-tracker-span",
+		AppName: "test-app",
+		TC: &TraceContext{
+			TID: "test-tracker-trace",
+			SID: 11,
+			PID: 11,
+		},
+		Success:   false,
+		Code:      200,
+		StartTime: startTime,
+		Duration:  time.Second,
+		Host:      "localhost",
+	}
+
+	tracker = spanner.Start(context.Background(), s).(*HTTPTracker)
+	require.NotNil(t, tracker)
+
+	tracker.m = sync.RWMutex{}
+	r = Result{
+		Name:    "test-result-span",
+		AppName: "test-finish-app",
+		Success: true,
+		Code:    201,
+		Err:     nil,
+	}
+
+	tracker.Finish(r)
+	assert.Equal(tracker.span.Name, r.Name)
+	assert.Equal(tracker.span.AppName, r.AppName)
+	assert.Equal(tracker.span.Code, r.Code)
+	assert.Equal(tracker.span.Err, r.Err)
+	assert.Equal(tracker.span.Success, r.Success)
+}

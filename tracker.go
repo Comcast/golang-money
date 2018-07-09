@@ -57,7 +57,7 @@ type SpanForwardingOptions func(*http.Response) []string
 //HTTPTracker is the management type for child spans
 type HTTPTracker struct {
 	Spanner
-	m    *sync.RWMutex
+	m    sync.RWMutex
 	span Span
 
 	//spans contains the string-encoded value of all spans created under this tracker
