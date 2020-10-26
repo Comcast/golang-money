@@ -27,6 +27,16 @@ func TestDecodeTraceContext(t *testing.T) {
 			},
 			e: nil,
 		},
+		{
+			name: "extra",
+			i:    "trace-id=de305d54-75b4-431b-adb2-eb6b9e546013;parent-id=3285573610483682037;span-id=3285573610483682037;sampled=1",
+			o: &TraceContext{
+				PID: 3285573610483682037,
+				SID: 3285573610483682037,
+				TID: "de305d54-75b4-431b-adb2-eb6b9e546013",
+			},
+			e: nil,
+		},
 
 		{
 			name: "duplicateEntries",
@@ -44,6 +54,27 @@ func TestDecodeTraceContext(t *testing.T) {
 		{
 			name: "NoRealPairs",
 			i:    "one=1;two=2;three=3",
+			o:    nil,
+			e:    errBadTrace,
+		},
+
+		{
+			name: "missingTraceId",
+			i:    "foo=bar;parent-id=3285573610483682037;span-id=3285573610483682037",
+			o:    nil,
+			e:    errBadTrace,
+		},
+
+		{
+			name: "missingParentId",
+			i:    "trace-id=de305d54-75b4-431b-adb2-eb6b9e546013;foo=bar;span-id=3285573610483682037",
+			o:    nil,
+			e:    errBadTrace,
+		},
+
+		{
+			name: "missingSpanId",
+			i:    "trace-id=de305d54-75b4-431b-adb2-eb6b9e546013;parent-id=3285573610483682037;foo=bar",
 			o:    nil,
 			e:    errBadTrace,
 		},

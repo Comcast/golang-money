@@ -34,7 +34,7 @@ func decodeTraceContext(raw string) (tc *TraceContext, err error) {
 
 	pairs := strings.Split(raw, ";")
 
-	if len(pairs) != 3 {
+	if len(pairs) < 3 {
 		return nil, errPairsCount
 	}
 
@@ -66,10 +66,11 @@ func decodeTraceContext(raw string) (tc *TraceContext, err error) {
 				return nil, err
 			}
 			tc.PID, seen[k] = pv, true
-
-		default:
-			return nil, errBadTrace
 		}
+	}
+
+	if (!seen[tIDKey] || !seen[sIDKey] || !seen[pIDKey]) {
+		return nil, errBadTrace
 	}
 
 	return
